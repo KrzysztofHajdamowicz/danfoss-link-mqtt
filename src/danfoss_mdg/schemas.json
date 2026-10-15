@@ -1,0 +1,542 @@
+{
+  "mdg_library_pb": {
+    "messages": {
+      ".mdg.library.Property": {
+        "key": {
+          "number": 1,
+          "type": 9,
+          "label": 2
+        },
+        "value": {
+          "number": 2,
+          "type": 9,
+          "label": 2
+        }
+      },
+      ".mdg.library.Request": {
+        "request_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "operation": {
+          "number": 2,
+          "type": 9,
+          "label": 2
+        },
+        "parameters": {
+          "number": 3,
+          "type": 11,
+          "label": 3,
+          "message": ".mdg.library.Property"
+        }
+      },
+      ".mdg.library.PosResponse": {
+        "request_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "response": {
+          "number": 2,
+          "type": 9,
+          "label": 2
+        }
+      },
+      ".mdg.library.NegResponse": {
+        "request_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "error_text": {
+          "number": 2,
+          "type": 9,
+          "label": 2
+        }
+      },
+      ".mdg.library.Notification": {
+        "event": {
+          "number": 1,
+          "type": 9,
+          "label": 2
+        },
+        "parameters": {
+          "number": 2,
+          "type": 11,
+          "label": 3,
+          "message": ".mdg.library.Property"
+        }
+      }
+    },
+    "enums": {},
+    "codes": {
+      "MT_NEG_RESPONSE": 3,
+      "MT_NOTIFICATION": 4,
+      "MT_POS_RESPONSE": 2,
+      "MT_REQUEST": 1
+    }
+  },
+  "mdg_routing_pb": {
+    "messages": {
+      ".mdg.routing.Handshake": {
+        "magic": {
+          "number": 1,
+          "type": 7,
+          "label": 2
+        },
+        "version_major": {
+          "number": 2,
+          "type": 13,
+          "label": 2
+        },
+        "version_minor": {
+          "number": 3,
+          "type": 13,
+          "label": 2
+        },
+        "token": {
+          "number": 4,
+          "type": 12,
+          "label": 2
+        },
+        "supported_protocols": {
+          "number": 5,
+          "type": 9,
+          "label": 3
+        }
+      },
+      ".mdg.routing.PleaseHold": {},
+      ".mdg.routing.GoAhead": {
+        "selected_protocol": {
+          "number": 1,
+          "type": 9,
+          "label": 1
+        }
+      },
+      ".mdg.routing.RoutingError": {
+        "error": {
+          "number": 1,
+          "type": 14,
+          "label": 2
+        }
+      }
+    },
+    "enums": {},
+    "codes": {
+      "RMT_GOAHEAD": 2,
+      "RMT_HANDSHAKE": 0,
+      "RMT_PLEASEHOLD": 1,
+      "RMT_ROUTINGERROR": 3
+    }
+  },
+  "mdg_control_pb": {
+    "messages": {
+      ".mdg.control.endpoint": {
+        "host": {
+          "number": 1,
+          "type": 12,
+          "label": 2
+        },
+        "port": {
+          "number": 2,
+          "type": 13,
+          "label": 2
+        }
+      },
+      ".mdg.control.routing_info": {
+        "peer_name": {
+          "number": 3,
+          "type": 9,
+          "label": 2
+        },
+        "router": {
+          "number": 4,
+          "type": 11,
+          "label": 3,
+          "message": ".mdg.control.endpoint"
+        },
+        "token": {
+          "number": 5,
+          "type": 12,
+          "label": 2
+        }
+      },
+      ".mdg.control.property": {
+        "key": {
+          "number": 1,
+          "type": 9,
+          "label": 2
+        },
+        "value": {
+          "number": 2,
+          "type": 9,
+          "label": 2
+        }
+      },
+      ".mdg.control.handshake": {
+        "magic": {
+          "number": 1,
+          "type": 7,
+          "label": 2
+        },
+        "version_major": {
+          "number": 2,
+          "type": 13,
+          "label": 2
+        },
+        "version_minor": {
+          "number": 3,
+          "type": 13,
+          "label": 2
+        },
+        "property": {
+          "number": 4,
+          "type": 11,
+          "label": 3,
+          "message": ".mdg.control.property"
+        }
+      },
+      ".mdg.control.bye": {
+        "reason": {
+          "number": 1,
+          "type": 14,
+          "label": 2
+        },
+        "reason_text": {
+          "number": 2,
+          "type": 9,
+          "label": 1
+        }
+      },
+      ".mdg.control.ping": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "perceived_qos": {
+          "number": 2,
+          "type": 13,
+          "label": 1
+        }
+      },
+      ".mdg.control.ping_reply": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        }
+      },
+      ".mdg.control.reconnect": {
+        "new_host": {
+          "number": 1,
+          "type": 11,
+          "label": 1,
+          "message": ".mdg.control.endpoint"
+        },
+        "suggested_delay": {
+          "number": 2,
+          "type": 13,
+          "label": 1
+        }
+      },
+      ".mdg.control.place_call": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "peer_name": {
+          "number": 2,
+          "type": 9,
+          "label": 2
+        },
+        "protocol": {
+          "number": 3,
+          "type": 9,
+          "label": 1
+        },
+        "ticket": {
+          "number": 4,
+          "type": 9,
+          "label": 1
+        }
+      },
+      ".mdg.control.place_call_reply": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "result": {
+          "number": 2,
+          "type": 14,
+          "label": 2
+        },
+        "routing": {
+          "number": 3,
+          "type": 11,
+          "label": 1,
+          "message": ".mdg.control.routing_info"
+        },
+        "result_text": {
+          "number": 4,
+          "type": 9,
+          "label": 1
+        }
+      },
+      ".mdg.control.incoming_call": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "routing": {
+          "number": 2,
+          "type": 11,
+          "label": 2,
+          "message": ".mdg.control.routing_info"
+        },
+        "protocol": {
+          "number": 3,
+          "type": 9,
+          "label": 1
+        },
+        "ticket": {
+          "number": 4,
+          "type": 9,
+          "label": 1
+        }
+      },
+      ".mdg.control.incoming_call_reply": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "will_accept_call": {
+          "number": 2,
+          "type": 8,
+          "label": 2
+        }
+      },
+      ".mdg.control.set_peer_whitelist": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "peer_name": {
+          "number": 2,
+          "type": 9,
+          "label": 3
+        }
+      },
+      ".mdg.control.set_peer_whitelist_reply": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        }
+      },
+      ".mdg.control.allocate_pairing_channel": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        }
+      },
+      ".mdg.control.allocate_pairing_channel_reply": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "result": {
+          "number": 2,
+          "type": 14,
+          "label": 2
+        },
+        "pair_id": {
+          "number": 3,
+          "type": 9,
+          "label": 1
+        },
+        "end_of_validity": {
+          "number": 4,
+          "type": 4,
+          "label": 1
+        }
+      },
+      ".mdg.control.place_pairing_call": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "pair_id": {
+          "number": 2,
+          "type": 9,
+          "label": 2
+        }
+      },
+      ".mdg.control.place_pairing_call_reply": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "result": {
+          "number": 2,
+          "type": 14,
+          "label": 2
+        },
+        "routing": {
+          "number": 3,
+          "type": 11,
+          "label": 1,
+          "message": ".mdg.control.routing_info"
+        },
+        "result_text": {
+          "number": 4,
+          "type": 9,
+          "label": 1
+        }
+      },
+      ".mdg.control.incoming_pairing_call": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "routing": {
+          "number": 2,
+          "type": 11,
+          "label": 2,
+          "message": ".mdg.control.routing_info"
+        },
+        "pair_id": {
+          "number": 3,
+          "type": 9,
+          "label": 2
+        }
+      },
+      ".mdg.control.incoming_pairing_call_reply": {
+        "req_id": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "will_accept_call": {
+          "number": 2,
+          "type": 8,
+          "label": 2
+        }
+      }
+    },
+    "enums": {},
+    "codes": {
+      "MT_ALLOCATE_PAIRING_CHANNEL": 30,
+      "MT_ALLOCATE_PAIRING_CHANNEL_REPLY": 31,
+      "MT_BYE": 2,
+      "MT_HANDSHAKE": 1,
+      "MT_INCOMING_CALL": 12,
+      "MT_INCOMING_CALL_REPLY": 13,
+      "MT_PING": 4,
+      "MT_PING_REPLY": 5,
+      "MT_PLACE_CALL": 10,
+      "MT_PLACE_CALL_REPLY": 11,
+      "MT_PLACE_PAIRING_CALL": 32,
+      "MT_PLACE_PAIRING_CALL_REPLY": 33,
+      "MT_RECONNECT": 3,
+      "MT_SET_PEER_WHITELIST": 20,
+      "MT_SET_PEER_WHITELIST_REPLY": 21
+    }
+  },
+  "mdg_pairing_pb": {
+    "messages": {
+      ".pace_client_hello": {
+        "magic": {
+          "number": 1,
+          "type": 7,
+          "label": 2
+        },
+        "version_major": {
+          "number": 2,
+          "type": 13,
+          "label": 2
+        },
+        "version_minor": {
+          "number": 3,
+          "type": 13,
+          "label": 2
+        }
+      },
+      ".pace_server_hello": {
+        "version_major": {
+          "number": 1,
+          "type": 13,
+          "label": 2
+        },
+        "version_minor": {
+          "number": 2,
+          "type": 13,
+          "label": 2
+        },
+        "salt": {
+          "number": 3,
+          "type": 12,
+          "label": 2
+        },
+        "iv": {
+          "number": 4,
+          "type": 12,
+          "label": 2
+        },
+        "z": {
+          "number": 5,
+          "type": 12,
+          "label": 2
+        }
+      },
+      ".pace_xy": {
+        "xy": {
+          "number": 1,
+          "type": 12,
+          "label": 2
+        }
+      },
+      ".pace_pk": {
+        "pk": {
+          "number": 1,
+          "type": 12,
+          "label": 2
+        }
+      },
+      ".pace_proof": {
+        "token": {
+          "number": 1,
+          "type": 12,
+          "label": 2
+        }
+      },
+      ".contact_info": {
+        "name": {
+          "number": 1,
+          "type": 9,
+          "label": 1
+        }
+      }
+    },
+    "enums": {},
+    "codes": {
+      "MT_CONTACT_INFO": 6,
+      "MT_PACE_CLIENT_HELLO": 1,
+      "MT_PACE_PK": 4,
+      "MT_PACE_PROOF": 5,
+      "MT_PACE_SERVER_HELLO": 2,
+      "MT_PACE_XY": 3
+    }
+  }
+}

@@ -1,0 +1,55 @@
+x-image: &image
+  image: danfoss-link-mqtt:local
+  build: .
+
+services:
+  mqtt:
+    <<: *image
+    container_name: danfoss-link-mqtt
+    restart: unless-stopped
+    read_only: true
+    user: "65534:65534"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 32
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+    environment:
+      MQTT_HOST: ${MQTT_HOST:?Set MQTT_HOST in .env or the stack environment}
+      MQTT_PORT: ${MQTT_PORT:-}
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      MQTT_TLS: ${MQTT_TLS:-false}
+      MQTT_CA_FILE: ${MQTT_CA_FILE:-}
+      MQTT_TOPIC_PREFIX: ${MQTT_TOPIC_PREFIX:-danfoss_link}
+      MQTT_DISCOVERY_PREFIX: ${MQTT_DISCOVERY_PREFIX:-homeassistant}
+      DANFOSS_POLL_INTERVAL: ${DANFOSS_POLL_INTERVAL:-60}
+      DANFOSS_ALLOW_WRITES: ${DANFOSS_ALLOW_WRITES:-true}
+    volumes:
+      - pairing-state:/state
+
+  # One-time helper for a new volume; not started by a normal deployment.
+  state-init:
+    <<: *image
+    profiles: [setup]
+    user: "0:0"
+    network_mode: none
+    read_only: true
+    restart: "no"
+    volumes:
+      - pairing-state:/state
+    entrypoint: [python, -c]
+    command:
+      - |
+        import os
+        from pathlib import Path
+        for path in (Path('/state'), Path('/state/apk-profile')):
+            path.mkdir(exist_ok=True, mode=0o700)
+            os.chown(path, 65534, 65534)
+            path.chmod(0o700)
+
+volumes:
+  pairing-state:
+    name: ${DANFOSS_STATE_VOLUME:-danfoss-link-mqtt-state}

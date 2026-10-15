@@ -1,0 +1,22 @@
+name: Tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Protocol, MQTT and synthetic broker tests
+        env:
+          PYTHONPATH: src:tests
+        run: >-
+          python -m unittest test_mqtt_bridge test_mqtt_status test_mqtt_wire
+          test_temperature_control test_readonly_transport test_pace_crypto
+          test_identity_profile test_code_diagnostics test_rooms

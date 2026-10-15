@@ -1,0 +1,16 @@
+.git
+.github
+.env
+.env.*
+.venv
+**/__pycache__
+**/*.pyc
+state
+.state
+**/*.key
+**/app_key.pem
+**/app_cert.pem
+**/paired_cc.json
+**/untrusted-public-certificates.json
+*.apk
+*.zip
