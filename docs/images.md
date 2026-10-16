@@ -34,4 +34,4 @@ docker compose -f compose.image.yaml up -d --no-deps mqtt
 
 To pin a specific published build, set `DANFOSS_IMAGE=ghcr.io/leifnel/danfoss-link-mqtt:sha-<full-commit-sha>` in the environment. Set it back to `ghcr.io/leifnel/danfoss-link-mqtt:latest` to follow tested main builds. The container remains `danfoss-link-mqtt`; the pairing volume is not deleted or reinitialized.
 
-In Komodo, use the complete contents of `compose.image.yaml` instead of the older embedded-source Compose. It does not require Build. Pull/deploy the new image after it is published. Git-backed installations can instead select `compose.image.yaml` from this repository. No Home Assistant restart or re-pairing is normally needed.
+The prebuilt image does not require a local build. Pull and deploy it with the commands above after a new image is published. No Home Assistant restart or re-pairing is normally needed.

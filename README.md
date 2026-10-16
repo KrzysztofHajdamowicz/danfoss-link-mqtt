@@ -51,9 +51,9 @@ docker logs -f danfoss-link-mqtt
 
 Home Assistant discovers the rooms and three controller sensors under **Danfoss Link CC**. Verify the readings first. Temperature commands are enabled by default; set `DANFOSS_ALLOW_WRITES=false` for read-only operation.
 
-## Existing pairing and Komodo
+## Existing pairing
 
-**Do not re-pair an already working installation.** Set `DANFOSS_STATE_VOLUME` to the exact existing Docker volume name before starting the new checkout. The profile remains `/state/apk-profile`. See [migration and Komodo](docs/migration.md) before changing an existing stack.
+**Do not re-pair an already working installation.** Set `DANFOSS_STATE_VOLUME` to the exact existing Docker volume name before starting the new checkout. The profile remains `/state/apk-profile`. See [migration guide](docs/migration.md) before changing an existing stack.
 
 Updating source does not update an existing image until it is rebuilt:
 
