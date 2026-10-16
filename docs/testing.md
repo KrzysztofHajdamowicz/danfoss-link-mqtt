@@ -12,7 +12,7 @@ docker run --rm --network none --read-only \
   danfoss-link-mqtt:test python -m unittest test_native_tls test_pace_crypto test_mqtt_status
 ```
 
-Native TLS tests exercise explicit BrainpoolP320r1, ordinary named curves, peer pinning, issuer handling, corrupted signatures, expiration and encrypted memory-BIO traffic. They require the patched runtime; do not expect them to pass against unmodified system OpenSSL. An optional manually triggered GitHub Actions workflow performs the Docker build and native tests. The ordinary push/PR workflow runs the Python suite and synthetic MQTT broker test.
+Native TLS tests exercise explicit BrainpoolP320r1, ordinary named curves, peer pinning, issuer handling, corrupted signatures, expiration and encrypted memory-BIO traffic. They require the patched runtime; do not expect them to pass against unmodified system OpenSSL. The image workflow runs on pushes to main or manual dispatch. It runs the Python suite first, builds the image, runs native tests inside that exact image, and publishes only if all steps pass. The ordinary push/PR workflow runs the Python suite and synthetic MQTT broker test.
 
 Initial public-source preparation ran 42 Python tests successfully. The readable patch applied cleanly, with no fuzz, to the previously retained OpenSSL 3.5.9 source files. This workspace has no Docker engine, so the newly reorganized Dockerfile has not been built here. The same compatibility patch/runtime was previously built and exercised on the original test host; the new file layout needs a fresh build confirmation.
 

@@ -16,6 +16,12 @@ This is an independent, experimental project, not an official Danfoss product. I
 
 Room reads and temperature writes have been verified on one installation, including HA → CC and CC → HA. System/alarm fields have been read from the CC, but the new automatic status/alarm publication still needs installation-level confirmation. No battery percentage or complete per-thermostat device list has been found; see [API findings](docs/api.md).
 
+## Prebuilt image
+
+GitHub Actions builds `linux/amd64`, runs the Python/MQTT tests and then runs native TLS tests inside the built image. Only that tested image is published to `ghcr.io/leifnel/danfoss-link-mqtt:latest` and `:sha-<full-commit-sha>`. A failed build or test does not update the published tags. See [image distribution](docs/images.md) for first-publication visibility and deployment.
+
+Use `compose.image.yaml` for the prebuilt image, or `compose.yaml` to build locally. Both preserve the same volume layout and MQTT entity IDs. The first publication must finish before the image can be pulled.
+
 ## Quick start: a new installation
 
 The Docker build currently targets **linux/amd64**. It builds a private, narrowly patched OpenSSL inside the image; it does not replace the host's or Home Assistant's crypto libraries. All source and the patch are readable files in this repository. The first image build can take several minutes.
