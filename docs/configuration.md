@@ -24,7 +24,7 @@ The bridge exposes no inbound HTTP ports. It makes outgoing MQTT and authenticat
 
 The image starts `hub_bridge.py`: a hub device with per-room devices, announced with MQTT **device discovery** (one `homeassistant/device/<id>/config` message per device). The original flat bridge, `mqtt_bridge.py` (one climate entity per room plus three controller sensors), is still included; select it with `command: python mqtt_bridge.py --state /state/apk-profile` in Compose. Run only one of them per paired identity.
 
-When the hub bridge finds retained discovery from the flat bridge, it migrates those entities as Home Assistant documents it: `{"migrate_discovery": true}` to each old topic, then the device configuration, then an empty retained message on the old topic. Unique IDs are unchanged, so entity IDs and their settings survive.
+When the hub bridge finds retained discovery from the flat bridge, it migrates those entities as Home Assistant documents it: `{"migrate_discovery": true}` to each old topic, then the device configuration, then an empty retained message on the old topic. Unique IDs are unchanged, so entity IDs and their settings survive. The hub's component keys deliberately differ from the flat bridge's object IDs, so Home Assistant does not see the final cleanup as a conflicting discovery message.
 
 ## Devices and entities
 
