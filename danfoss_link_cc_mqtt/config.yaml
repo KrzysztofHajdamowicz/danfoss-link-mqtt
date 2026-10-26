@@ -1,0 +1,39 @@
+---
+name: Danfoss Link CC (MQTT)
+version: "0.1.0"
+slug: danfoss_link_cc_mqtt
+description: >-
+  Danfoss Link CC hub and room thermostats in Home Assistant over MQTT,
+  through the Danfoss cloud relay. No CC firmware changes.
+url: https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt
+image: ghcr.io/krzysztofhajdamowicz/{arch}-danfoss-link-cc-mqtt
+arch:
+  - amd64
+stage: experimental
+startup: application
+boot: auto
+# The image runs its own entrypoint (addon_run.py) instead of the s6 base image.
+init: false
+# MQTT datetime entities (holiday start/end) need Home Assistant 2026.5 or newer.
+homeassistant: "2026.5.0"
+services:
+  - mqtt:want
+# The add-on config folder (/config) accepts an existing paired identity.
+map:
+  - addon_config:rw
+options:
+  poll_interval: 60
+  allow_writes: true
+  suggest_areas: true
+schema:
+  mqtt_host: str?
+  mqtt_port: port?
+  mqtt_username: str?
+  mqtt_password: password?
+  mqtt_tls: bool?
+  topic_prefix: match(^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$)?
+  discovery_prefix: match(^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$)?
+  poll_interval: int(30,3600)
+  allow_writes: bool
+  suggest_areas: bool
+  timezone: str?
