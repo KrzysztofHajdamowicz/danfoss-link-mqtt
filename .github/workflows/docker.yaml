@@ -1,43 +1,50 @@
-name: Build, test and publish image
+name: Build, test and publish images
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: image-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   python:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: python -m pip install -r requirements-dev.txt
-      - name: Protocol and synthetic MQTT broker tests
-        env:
-          PYTHONPATH: src:tests
-        run: >-
-          python -m unittest test_mqtt_bridge test_mqtt_status test_mqtt_wire
-          test_temperature_control test_readonly_transport test_pace_crypto
-          test_identity_profile test_code_diagnostics test_rooms
+    uses: ./.github/workflows/tests.yaml
   image:
     needs: python
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build once and load the exact image to test
-        uses: docker/build-push-action@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Image names and add-on version
+        id: meta
+        run: |
+          set -eu
+          owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          version=$(sed -n 's/^version: "\(.*\)"$/\1/p' danfoss_link_cc_mqtt/config.yaml)
+          test -n "$version"
+          {
+            echo "standalone=ghcr.io/$owner/danfoss-link-mqtt"
+            echo "addon=ghcr.io/$owner/amd64-danfoss-link-cc-mqtt"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the standalone image once and load it for testing
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
+          target: standalone
           platforms: linux/amd64
           load: true
           push: false
@@ -48,29 +55,129 @@ jobs:
             org.opencontainers.image.licenses=MIT
           cache-from: type=gha,scope=amd64
           cache-to: type=gha,mode=max,scope=amd64
-      - name: Native TLS and status regressions inside the built image
-        run: >-
-          docker run --rm --network none --read-only
-          --tmpfs /tmp:rw,nosuid,size=32m,mode=1777
-          -e PYTHONPATH=/app:/app/tests
-          danfoss-link-mqtt:tested
-          python -m unittest test_native_tls test_pace_crypto test_mqtt_status
+      - name: Build the Home Assistant add-on image and load it for testing
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: addon
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: danfoss-link-cc-mqtt:tested
+          build-args: BUILD_VERSION=${{ steps.meta.outputs.version }}
+          labels: |
+            io.hass.arch=amd64
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.licenses=MIT
+          cache-from: type=gha,scope=amd64
+      - name: Native TLS, PACE, hub and add-on tests inside both images
+        run: |
+          set -eu
+          for image in danfoss-link-mqtt:tested danfoss-link-cc-mqtt:tested; do
+            docker run --rm --network none --read-only \
+              --tmpfs /tmp:rw,nosuid,size=32m,mode=1777 \
+              -v "$PWD/tests:/app/tests:ro" -e PYTHONPATH=/app:/app/tests "$image" \
+              python -m unittest test_native_tls test_pace_crypto test_mqtt_status \
+              test_hub_transport test_hub_client test_hub_bridge test_addon_run
+            echo "- \`$image\`: $(docker image inspect --format '{{.Size}}' "$image" | numfmt --to=si)B" >> "$GITHUB_STEP_SUMMARY"
+          done
+      - name: CycloneDX 1.6 SBOM of the standalone image
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: danfoss-link-mqtt:tested
+          format: cyclonedx-json@1.6
+          output-file: sbom-standalone.cdx.json
+          syft-version: v1.54.1
+          upload-artifact: false
+          upload-release-assets: false
+      - name: CycloneDX 1.6 SBOM of the add-on image
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: danfoss-link-cc-mqtt:tested
+          format: cyclonedx-json@1.6
+          output-file: sbom-addon.cdx.json
+          syft-version: v1.54.1
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Record the patched OpenSSL and validate the SBOMs
+        run: |
+          set -eu
+          for sbom in sbom-standalone.cdx.json sbom-addon.cdx.json; do
+            python3 tools/sbom_openssl.py "$sbom"
+            docker run --rm --network none -v "$PWD:/work:ro" \
+              cyclonedx/cyclonedx-cli:0.33.1@sha256:252c2e26f468c25fea1e63ecde1bc3198ad6e9dbb57f5ed3236bddcb2281b3a7 \
+              validate --input-file "/work/$sbom" --input-version v1_6 --fail-on-errors
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-cyclonedx-1.6
+          path: sbom-*.cdx.json
       - name: Log in to GitHub Container Registry
-        if: github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
+        if: env.PUBLISH == 'true'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish the image that passed tests
-        if: github.ref == 'refs/heads/main'
+      - name: Publish the images that passed tests
+        if: env.PUBLISH == 'true'
+        id: push
         env:
-          IMAGE: ghcr.io/${{ github.repository }}
+          STANDALONE: ${{ steps.meta.outputs.standalone }}
+          ADDON: ${{ steps.meta.outputs.addon }}
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -eu
-          IMAGE=$(printf '%s' "$IMAGE" | tr '[:upper:]' '[:lower:]')
-          docker tag danfoss-link-mqtt:tested "$IMAGE:sha-$GITHUB_SHA"
-          docker tag danfoss-link-mqtt:tested "$IMAGE:latest"
-          docker push "$IMAGE:sha-$GITHUB_SHA"
-          docker push "$IMAGE:latest"
-          echo "Published $IMAGE:sha-$GITHUB_SHA and $IMAGE:latest" >> "$GITHUB_STEP_SUMMARY"
+          docker tag danfoss-link-mqtt:tested "$STANDALONE:sha-$GITHUB_SHA"
+          docker tag danfoss-link-mqtt:tested "$STANDALONE:latest"
+          docker push "$STANDALONE:sha-$GITHUB_SHA"
+          docker push "$STANDALONE:latest"
+          docker tag danfoss-link-cc-mqtt:tested "$ADDON:sha-$GITHUB_SHA"
+          docker push "$ADDON:sha-$GITHUB_SHA"
+          # Home Assistant installs by version tag; a released version is never replaced.
+          if docker buildx imagetools inspect "$ADDON:$VERSION" > /dev/null 2>&1; then
+            echo "::warning::$ADDON:$VERSION already exists; bump the add-on version to release this build"
+          else
+            docker tag danfoss-link-cc-mqtt:tested "$ADDON:$VERSION"
+            docker push "$ADDON:$VERSION"
+          fi
+          digest() { docker inspect --format '{{index .RepoDigests 0}}' "$1" | cut -d@ -f2; }
+          echo "standalone=$(digest "$STANDALONE:sha-$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
+          echo "addon=$(digest "$ADDON:sha-$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
+          echo "Published $STANDALONE:sha-$GITHUB_SHA and $ADDON:sha-$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Build provenance for the standalone image
+        if: env.PUBLISH == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.meta.outputs.standalone }}
+          subject-digest: ${{ steps.push.outputs.standalone }}
+          push-to-registry: true
+          create-storage-record: false
+      - name: SBOM attestation for the standalone image
+        if: env.PUBLISH == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.meta.outputs.standalone }}
+          subject-digest: ${{ steps.push.outputs.standalone }}
+          sbom-path: sbom-standalone.cdx.json
+          push-to-registry: true
+          create-storage-record: false
+      - name: Build provenance for the add-on image
+        if: env.PUBLISH == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.meta.outputs.addon }}
+          subject-digest: ${{ steps.push.outputs.addon }}
+          push-to-registry: true
+          create-storage-record: false
+      - name: SBOM attestation for the add-on image
+        if: env.PUBLISH == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.meta.outputs.addon }}
+          subject-digest: ${{ steps.push.outputs.addon }}
+          sbom-path: sbom-addon.cdx.json
+          push-to-registry: true
+          create-storage-record: false
