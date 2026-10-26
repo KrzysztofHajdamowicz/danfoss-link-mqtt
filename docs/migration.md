@@ -34,3 +34,9 @@ docker logs --tail 80 danfoss-link-mqtt
 ```
 
 The container is replaced under the same name, `danfoss-link-mqtt`. The volume is preserved. Wait for a successful cloud refresh, then check your existing climate entities and the controller sensors.
+
+## From the flat model to hub devices
+
+Images built from this fork start the hub bridge (`hub_bridge.py`) instead of the flat one. Nothing needs to be done by hand: on its first connection it finds the flat bridge's retained discovery topics, migrates them with Home Assistant's `migrate_discovery` procedure, announces the hub and room devices and clears the old topics. The climate entities and the status/alarm sensors keep their unique IDs, entity IDs and customizations; they move to the new devices. The pairing volume and its format are unchanged.
+
+To go back, run the flat bridge with `command: python mqtt_bridge.py --state /state/apk-profile` after removing the device discovery topics (`homeassistant/device/danfoss_link_<cid>…/config`, empty retained messages).
