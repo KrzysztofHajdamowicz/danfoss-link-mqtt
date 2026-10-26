@@ -135,9 +135,9 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(
             {k: c["platform"] for k, c in components.items()},
             {
-                "system_state": "sensor",
-                "alarm": "binary_sensor",
-                "alarm_count": "sensor",
+                "status": "sensor",
+                "problem": "binary_sensor",
+                "alarms": "sensor",
                 "pause": "switch",
                 "vacation": "switch",
                 "athome": "switch",
@@ -148,8 +148,8 @@ class DiscoveryTests(unittest.TestCase):
                 "last_command": "sensor",
             },
         )
-        for key in ("system_state", "alarm", "alarm_count"):
-            self.assertEqual(components[key]["unique_id"], "danfoss_link_cid_" + key)
+        for key, flat in (("status", "system_state"), ("problem", "alarm"), ("alarms", "alarm_count")):
+            self.assertEqual(components[key]["unique_id"], "danfoss_link_cid_" + flat)
         self.assertEqual(components["pause"]["command_topic"], "danfoss_link/cid/hub/pause/set")
         self.assertEqual((components["pause_temperature"]["min"], components["pause_temperature"]["max"]), (4.0, 10.0))
         self.assertEqual(payload["device"]["sw_version"], "4.2.1724")

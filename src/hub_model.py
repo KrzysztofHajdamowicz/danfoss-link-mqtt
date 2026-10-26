@@ -265,8 +265,10 @@ def hub_discovery(config, controller_id, snapshot):
         device["serial_number"] = snapshot["system"]["serial"]
     payload = _root(config, controller_id, device)
     components = payload["components"]
-    # Unique IDs of the first three match the flat bridge, so entities migrate.
-    components["system_state"] = {
+    # Unique IDs of the first three match the flat bridge, so entities migrate; their
+    # keys differ from its object IDs so Home Assistant sees new discovery hashes and
+    # clearing the flat topics afterwards does not conflict.
+    components["status"] = {
         "platform": "sensor",
         "name": "System status",
         "unique_id": uid + "_system_state",
@@ -275,7 +277,7 @@ def hub_discovery(config, controller_id, snapshot):
         "value_template": "{{ value_json.current_state }}",
         "expire_after": expire,
     }
-    components["alarm"] = {
+    components["problem"] = {
         "platform": "binary_sensor",
         "name": "Alarm",
         "unique_id": uid + "_alarm",
@@ -285,7 +287,7 @@ def hub_discovery(config, controller_id, snapshot):
         "json_attributes_topic": base + "/alarms/attributes",
         "expire_after": expire,
     }
-    components["alarm_count"] = {
+    components["alarms"] = {
         "platform": "sensor",
         "name": "Alarm count",
         "unique_id": uid + "_alarm_count",
