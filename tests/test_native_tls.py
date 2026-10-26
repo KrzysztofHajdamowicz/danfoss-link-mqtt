@@ -290,7 +290,7 @@ extendedKeyUsage=serverAuth,clientAuth
         import ctypes, ctypes.util
 
         der = ssl.PEM_cert_to_DER_cert(self.files["bp320"][1].read_text())
-        lib = ctypes.CDLL(ctypes.util.find_library("crypto"))
+        lib = ctypes.CDLL(ctypes.util.find_library("crypto") or "libcrypto.so.3")
         lib.ERR_peek_error.restype = ctypes.c_ulong
         lib.ERR_clear_error()
         self.assertTrue(

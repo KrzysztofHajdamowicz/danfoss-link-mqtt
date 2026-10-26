@@ -23,10 +23,12 @@ class CurveMatcher:
             "secp521r1",
         ):
             raise ValueError("Unsupported diagnostic curve")
-        name = ctypes.util.find_library("crypto")
-        if not name:
-            raise RuntimeError("System libcrypto unavailable")
-        self.lib = C.CDLL(name)
+        # musl (Alpine) has no ldconfig cache, so find_library returns None there.
+        name = ctypes.util.find_library("crypto") or "libcrypto.so.3"
+        try:
+            self.lib = C.CDLL(name)
+        except OSError:
+            raise RuntimeError("System libcrypto unavailable") from None
         signatures = {
             "d2i_X509": (C.c_void_p, [C.c_void_p, C.POINTER(C.c_void_p), C.c_long]),
             "X509_get_pubkey": (C.c_void_p, [C.c_void_p]),

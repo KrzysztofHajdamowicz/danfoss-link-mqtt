@@ -8,10 +8,12 @@ from .pairing import PairingError
 
 class PaceCrypto:
     def __init__(self):
-        name = ctypes.util.find_library("crypto")
-        if not name:
-            raise PairingError("Native cryptography unavailable")
-        self.lib = C.CDLL(name)
+        # musl (Alpine) has no ldconfig cache, so find_library returns None there.
+        name = ctypes.util.find_library("crypto") or "libcrypto.so.3"
+        try:
+            self.lib = C.CDLL(name)
+        except OSError:
+            raise PairingError("Native cryptography unavailable") from None
         p = C.c_void_p
         signatures = {
             "OBJ_txt2nid": (C.c_int, [C.c_char_p]),
