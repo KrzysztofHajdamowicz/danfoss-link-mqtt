@@ -1,6 +1,8 @@
 name: Tests
 on:
+  # Pull requests are already tested by their pull_request run.
   push:
+    branches: [main]
   pull_request:
   workflow_call:
 permissions:
