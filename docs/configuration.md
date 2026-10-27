@@ -16,6 +16,7 @@ All settings are environment variables. Only `MQTT_HOST` is required. Empty opti
 | `DANFOSS_ALLOW_WRITES` | true | false: read-only entities, no command topics, commands ignored |
 | `DANFOSS_TIMEZONE` | `TZ`, else UTC | IANA time zone of the CC clock; holiday times are converted with it |
 | `DANFOSS_SUGGEST_AREAS` | true | Suggest a Home Assistant area per room when its device is first added |
+| `DANFOSS_PAIRING_CODE_FILE` | empty | File with a fresh cloud pairing code, used at startup while unpaired (see [pairing](pairing.md)) |
 | `DANFOSS_STATE_VOLUME` | danfoss-link-mqtt-state | Compose-only Docker volume name |
 
 The bridge exposes no inbound HTTP ports. It makes outgoing MQTT and authenticated cloud connections. Restart the container after changing environment settings. If another Compose deploy configuration already specifies memory limits, keep them consistent.

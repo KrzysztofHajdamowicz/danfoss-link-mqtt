@@ -1,6 +1,6 @@
 ---
 name: Danfoss Link CC (MQTT)
-version: "0.1.0"
+version: "0.2.0"
 slug: danfoss_link_cc_mqtt
 description: >-
   Danfoss Link CC hub and room thermostats in Home Assistant over MQTT,
@@ -37,3 +37,4 @@ schema:
   allow_writes: bool
   suggest_areas: bool
   timezone: str?
+  pairing_code: password?

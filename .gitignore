@@ -16,5 +16,6 @@ state/
 *.apk
 *.zip
 paired_cc.json
+pairing-code.txt
 mqtt_discovery_rooms.json
 untrusted-public-certificates.json

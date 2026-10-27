@@ -102,12 +102,33 @@ def import_identity(state=STATE, config=CONFIG):
     return True
 
 
-def wait_until_paired(state=STATE, config=CONFIG, interval=5):
+def pair_with_option(code, state=STATE):
+    """Pair with the pairing_code option; the code is never logged."""
+    from pair_cc import pair_with_code
+
+    if pair_with_code(state, code, "Home Assistant"):
+        print(
+            "Paired. You can remove the pairing code from the add-on configuration.",
+            flush=True,
+        )
+
+
+def wait_until_paired(state=STATE, config=CONFIG, interval=5, code=None):
     if (state / "paired_cc.json").exists():
+        if code:
+            print(
+                "Already paired; the pairing code option is ignored and can be removed",
+                flush=True,
+            )
         return
+    if code:
+        pair_with_option(code, state)
+        if (state / "paired_cc.json").exists():
+            return
     print(
-        "NOT PAIRED. Either copy app_key.pem, app_cert.pem and paired_cc.json into this "
-        "add-on's config folder, or pair once with a fresh cloud code from the CC panel:\n"
+        "NOT PAIRED. Either generate a fresh cloud code on the CC panel, enter it as the "
+        "pairing code option and restart the add-on; or copy app_key.pem, app_cert.pem "
+        "and paired_cc.json into this add-on's config folder; or pair from the host shell:\n"
         "  docker exec -it $(docker ps -qf name=danfoss_link_cc_mqtt) \\\n"
         '    python /app/pair_cc.py --state /data --apk-identity-test --name "Home Assistant"\n'
         "The bridge starts automatically once pairing is saved.",
@@ -130,7 +151,7 @@ def main():
         return 1
     print("Using MQTT broker " + env["MQTT_HOST"], flush=True)
     import_identity()
-    wait_until_paired()
+    wait_until_paired(code=str(options.get("pairing_code") or "").strip() or None)
     os.execve(sys.executable, [sys.executable, str(BRIDGE), "--state", str(STATE)], env)
 
 

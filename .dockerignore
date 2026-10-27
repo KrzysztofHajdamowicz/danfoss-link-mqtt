@@ -11,6 +11,7 @@ state
 **/app_key.pem
 **/app_cert.pem
 **/paired_cc.json
+**/pairing-code.txt
 **/untrusted-public-certificates.json
 *.apk
 *.zip

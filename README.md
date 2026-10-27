@@ -43,7 +43,7 @@ docker compose run --rm state-init
 docker compose run --rm -it mqtt python pair_cc.py --state /state --apk-identity-test --name "Danfoss MQTT"
 ```
 
-Open the remote/app connection menu on your own CC panel, generate a fresh cloud pairing code, and enter it at the hidden terminal prompt. Do not put the code in command-line arguments, environment variables or issue reports. See [pairing and trust](docs/pairing.md).
+Open the remote/app connection menu on your own CC panel, generate a fresh cloud pairing code, and enter it at the hidden terminal prompt, or pair at startup from a [code file](docs/pairing.md#from-a-code-file). Do not put the code in command-line arguments, environment variables or issue reports. See [pairing and trust](docs/pairing.md).
 
 ```sh
 docker compose up -d mqtt

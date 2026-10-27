@@ -18,6 +18,16 @@ docker compose run --rm -it mqtt python pair_cc.py --state /state --apk-identity
 
 `--apk-identity-test` selects the app-compatible certificate profile under `/state/apk-profile`; the historical flag name is retained for compatibility. The code is entered with `getpass`, is not echoed, and is not saved. Codes starting with `0000` are local pairing codes and are refused by this cloud client. After success, the runtime uses the same profile directory without another panel code.
 
+### From a code file
+
+Without a terminal, the bridge can pair at startup from a file named by `DANFOSS_PAIRING_CODE_FILE`, for example a Compose secret. `compose.pairing.yaml` mounts `./pairing-code.txt` (ignored by Git and the Docker build) for this:
+
+```sh
+docker compose -f compose.yaml -f compose.pairing.yaml up -d
+```
+
+The file must be a small regular file readable by UID 65534 and contain only the code. The bridge pairs as "Danfoss MQTT" while `paired_cc.json` is missing and ignores the file afterwards. Each code is tried once: a salted fingerprint of the attempted code is kept in the state directory, the code itself is neither logged nor saved, and after a failure the bridge waits for a different code in the file. Delete the file once the log reports the pairing. The Home Assistant add-on offers the same through its `pairing_code` option.
+
 ## Authentication layers
 
 1. The grid/control connection validates the server chain using the application's public trust anchors.

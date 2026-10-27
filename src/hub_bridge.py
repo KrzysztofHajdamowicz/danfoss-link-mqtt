@@ -594,6 +594,12 @@ def main():
     if not ssl.OPENSSL_VERSION.startswith("OpenSSL 3.5.9 "):
         print("Run inside the isolated private MDG TLS runtime", flush=True)
         return 1
+    code_file = os.environ.get("DANFOSS_PAIRING_CODE_FILE")
+    if code_file and not (args.state / "paired_cc.json").exists():
+        from pair_cc import pair_from_file
+
+        pair_from_file(args.state, code_file)
+        print("Paired; the pairing code file is no longer needed", flush=True)
     try:
         bridge = HubBridge(
             Settings.from_env(),

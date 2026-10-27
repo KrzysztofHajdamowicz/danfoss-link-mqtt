@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Pair from the add-on configuration: enter a fresh cloud code from the CC panel as the
+  `pairing_code` option. A code is tried once and never logged; it is ignored once paired.
+- Standalone image: pair at startup from a code file such as a Docker secret
+  (`DANFOSS_PAIRING_CODE_FILE`).
+
 ## 0.1.0
 
 - First add-on release: hub and per-room devices via MQTT device discovery, verified commands for
