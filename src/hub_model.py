@@ -6,7 +6,7 @@ from danfoss_client import numeric
 from danfoss_readonly import ProtocolError
 from mqtt_bridge import clean_world
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 ORIGIN = {
     "name": "danfoss-link-mqtt",
     "sw_version": VERSION,
