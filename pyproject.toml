@@ -8,7 +8,7 @@ requires-python = ">=3.12"
 dependencies = ["paho-mqtt==2.1.0"]
 
 [dependency-groups]
-dev = ["amqtt==0.11.3"]
+dev = ["amqtt==0.12.1"]
 
 [tool.uv]
 # Scripts under src/ run directly; there is no installable package.
