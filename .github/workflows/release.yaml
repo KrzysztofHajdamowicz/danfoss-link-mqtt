@@ -1,0 +1,111 @@
+name: Release
+on:
+  push:
+    tags: ["v*.*.*"]
+permissions:
+  contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Tag is X.Y.Z on main and not older than the add-on version
+        id: tag
+        run: |
+          set -eu
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Tags look like v1.2.3"; exit 1; }
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::Tag a commit on main"; exit 1; }
+          python3 tools/release_metadata.py check "${GITHUB_REF_NAME#v}"
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+  images:
+    needs: verify
+    uses: ./.github/workflows/docker.yaml
+    with:
+      version: ${{ needs.verify.outputs.version }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+
+  release:
+    needs: [verify, images]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+      VERSION: ${{ needs.verify.outputs.version }}
+      STANDALONE_DIGEST: ${{ needs.images.outputs.standalone_digest }}
+      ADDON_DIGEST: ${{ needs.images.outputs.addon_digest }}
+    steps:
+      # Release metadata goes to main by pull request, so check out main, not the tag.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - name: Release notes from merged pull requests
+        run: |
+          set -eu
+          gh api "repos/$GH_REPO/releases/generate-notes" -f tag_name="$TAG" --jq .body > notes.md
+          owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          {
+            cat notes.md
+            echo
+            echo "## Images"
+            echo
+            echo "| Image | Digest |"
+            echo "| --- | --- |"
+            echo "| \`ghcr.io/$owner/amd64-danfoss-link-cc-mqtt:$VERSION\` (Home Assistant add-on) | \`$ADDON_DIGEST\` |"
+            echo "| \`ghcr.io/$owner/danfoss-link-mqtt:$VERSION\` (standalone, also \`${VERSION%.*}\` and \`latest\`) | \`$STANDALONE_DIGEST\` |"
+            echo
+            echo "Verify the build provenance and SBOM attestations:"
+            echo
+            echo '```sh'
+            echo "gh attestation verify oci://ghcr.io/$owner/danfoss-link-mqtt:$VERSION --owner $GITHUB_REPOSITORY_OWNER"
+            echo '```'
+          } > release.md
+      - name: Create or update the GitHub release
+        run: |
+          set -eu
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file release.md
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file release.md
+          fi
+      - name: Pull request with the add-on version and changelog
+        run: |
+          set -eu
+          python3 tools/release_metadata.py apply "$VERSION" --notes notes.md
+          git add danfoss_link_cc_mqtt pyproject.toml uv.lock src/hub_model.py
+          if git diff --cached --quiet; then
+            echo "Metadata on main already matches $VERSION" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          branch="release/$TAG-metadata"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -m "Release $TAG: add-on version and changelog"
+          git push --force origin "$branch"
+          if ! gh pr view "$branch" --json state --jq .state 2>/dev/null | grep -q OPEN; then
+            gh pr create --base main --head "$branch" --label release \
+              --title "Release $TAG: add-on version and changelog" \
+              --body "Makes $VERSION visible to Home Assistant now that its images are published. Created by the release workflow."
+          fi
+          # Pull requests opened with GITHUB_TOKEN start no workflows; dispatch the
+          # required checks for the branch, then merge once they pass.
+          gh workflow run docker.yaml --ref "$branch"
+          gh pr merge "$branch" --auto --squash

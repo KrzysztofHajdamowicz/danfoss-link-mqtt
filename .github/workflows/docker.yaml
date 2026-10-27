@@ -4,6 +4,18 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Called by the release workflow for a version tag.
+  workflow_call:
+    inputs:
+      version:
+        description: Release version (X.Y.Z)
+        type: string
+        default: ""
+    outputs:
+      standalone_digest:
+        value: ${{ jobs.image.outputs.standalone_digest }}
+      addon_digest:
+        value: ${{ jobs.image.outputs.addon_digest }}
 permissions:
   contents: read
 concurrency:
@@ -21,8 +33,12 @@ jobs:
       packages: write
       id-token: write
       attestations: write
+    outputs:
+      standalone_digest: ${{ steps.push.outputs.standalone_release }}
+      addon_digest: ${{ steps.push.outputs.addon_release }}
     env:
-      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+      RELEASE_VERSION: ${{ inputs.version || '' }}
+      PUBLISH: ${{ (inputs.version || '') != '' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -32,7 +48,7 @@ jobs:
         run: |
           set -eu
           owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          version=$(sed -n 's/^version: "\(.*\)"$/\1/p' danfoss_link_cc_mqtt/config.yaml)
+          version=${RELEASE_VERSION:-$(sed -n 's/^version: "\(.*\)"$/\1/p' danfoss_link_cc_mqtt/config.yaml)}
           test -n "$version"
           {
             echo "standalone=ghcr.io/$owner/danfoss-link-mqtt"
@@ -130,20 +146,52 @@ jobs:
           VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -eu
+          # A released version tag is never moved to another commit; re-running the
+          # release for the same commit keeps the image already published.
+          revision() {
+            docker buildx imagetools inspect "$1" \
+              --format '{{ index .Image.Config.Labels "org.opencontainers.image.revision" }}' 2>/dev/null
+          }
+          digest() { docker inspect --format '{{index .RepoDigests 0}}' "$1" | cut -d@ -f2; }
+          release_tag() {
+            if [ -n "$(revision "$2:$VERSION" || true)" ]; then
+              echo "::notice::$2:$VERSION already published from this commit; kept"
+            else
+              docker tag "$1" "$2:$VERSION"
+              docker push "$2:$VERSION"
+            fi
+          }
+          # Checked before anything is pushed.
+          if [ -n "$RELEASE_VERSION" ]; then
+            for image in "$STANDALONE" "$ADDON"; do
+              existing=$(revision "$image:$VERSION" || true)
+              if [ -n "$existing" ] && [ "$existing" != "$GITHUB_SHA" ]; then
+                echo "::error::$image:$VERSION already exists for commit $existing"
+                exit 1
+              fi
+            done
+          fi
           docker tag danfoss-link-mqtt:tested "$STANDALONE:sha-$GITHUB_SHA"
-          docker tag danfoss-link-mqtt:tested "$STANDALONE:latest"
           docker push "$STANDALONE:sha-$GITHUB_SHA"
-          docker push "$STANDALONE:latest"
           docker tag danfoss-link-cc-mqtt:tested "$ADDON:sha-$GITHUB_SHA"
           docker push "$ADDON:sha-$GITHUB_SHA"
-          # Home Assistant installs by version tag; a released version is never replaced.
-          if docker buildx imagetools inspect "$ADDON:$VERSION" > /dev/null 2>&1; then
-            echo "::warning::$ADDON:$VERSION already exists; bump the add-on version to release this build"
+          if [ -n "$RELEASE_VERSION" ]; then
+            release_tag danfoss-link-mqtt:tested "$STANDALONE"
+            release_tag danfoss-link-cc-mqtt:tested "$ADDON"
+            for tag in "${VERSION%.*}" latest; do
+              docker buildx imagetools create --tag "$STANDALONE:$tag" "$STANDALONE:$VERSION"
+            done
+            release_digest() {
+              docker buildx imagetools inspect "$1:$VERSION" --format '{{ .Manifest.Digest }}'
+            }
+            echo "standalone_release=$(release_digest "$STANDALONE")" >> "$GITHUB_OUTPUT"
+            echo "addon_release=$(release_digest "$ADDON")" >> "$GITHUB_OUTPUT"
+            echo "Released $STANDALONE:$VERSION (also ${VERSION%.*}, latest) and $ADDON:$VERSION" >> "$GITHUB_STEP_SUMMARY"
           else
-            docker tag danfoss-link-cc-mqtt:tested "$ADDON:$VERSION"
-            docker push "$ADDON:$VERSION"
+            # Home Assistant only learns of a new add-on version from a release.
+            docker tag danfoss-link-mqtt:tested "$STANDALONE:edge"
+            docker push "$STANDALONE:edge"
           fi
-          digest() { docker inspect --format '{{index .RepoDigests 0}}' "$1" | cut -d@ -f2; }
           echo "standalone=$(digest "$STANDALONE:sha-$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
           echo "addon=$(digest "$ADDON:sha-$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
           echo "Published $STANDALONE:sha-$GITHUB_SHA and $ADDON:sha-$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

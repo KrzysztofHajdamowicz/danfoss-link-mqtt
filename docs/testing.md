@@ -7,7 +7,7 @@ uv sync --locked
 PYTHONPATH=src:tests uv run python -m unittest test_mqtt_bridge test_mqtt_status test_mqtt_wire \
   test_temperature_control test_readonly_transport test_pace_crypto test_identity_profile \
   test_code_diagnostics test_rooms test_hub_transport test_hub_model test_hub_client \
-  test_hub_bridge test_hub_wire test_addon_run test_pairing_code test_sbom_openssl
+  test_hub_bridge test_hub_wire test_addon_run test_pairing_code test_release_metadata test_sbom_openssl
 ```
 
 The private runtime has a separate TLS regression suite that generates its own synthetic certificates. Tests are not part of the image; mount them into the exact image under test:

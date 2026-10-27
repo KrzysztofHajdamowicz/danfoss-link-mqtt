@@ -27,7 +27,7 @@ Requires Home Assistant 2026.5 or newer and an MQTT broker (the Mosquitto add-on
 
 ## Standalone container
 
-The image builds a private, narrowly patched OpenSSL inside the image; it does not replace the host's or Home Assistant's crypto libraries. All source and the patch are readable files in this repository. A prebuilt amd64 image is published as `ghcr.io/krzysztofhajdamowicz/danfoss-link-mqtt` (see [images](docs/images.md)); the Dockerfile also builds natively on arm64.
+The image builds a private, narrowly patched OpenSSL inside the image; it does not replace the host's or Home Assistant's crypto libraries. All source and the patch are readable files in this repository. A prebuilt amd64 image is published as `ghcr.io/krzysztofhajdamowicz/danfoss-link-mqtt` (see [images](docs/images.md)); the Dockerfile also builds natively on arm64. Releases are cut by pushing a `vX.Y.Z` tag ([releases](docs/images.md#releases)).
 
 ```sh
 git clone https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt.git
