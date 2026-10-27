@@ -1,18 +1,24 @@
-"""Interactive pairing of owner's CC. Never place the code in argv/env/logs."""
+"""Pairing of owner's CC: hidden prompt, add-on option or code file.
+
+Never place the code in argv, env or logs.
+"""
 
 import argparse
 import asyncio
 import base64
 import getpass
+import hashlib
 import json
 import os
 from pathlib import Path
 import ssl
+import stat
 import subprocess
 import sys
 import tempfile
+import time
 from danfoss_mdg.control import ControlChannel, ControlError, HOSTS
-from danfoss_mdg.identity import ensure_identity, IdentityError
+from danfoss_mdg.identity import ensure_identity, IdentityError, private_directory
 from danfoss_mdg.pairing import PairingChannel, PairingError
 from danfoss_mdg.pace_client import authenticate_peer
 from danfoss_mdg.routing import connect_pairing_route
@@ -122,6 +128,104 @@ async def pair(state, code, name="Danfoss MQTT", *, identity_profile="legacy"):
             await control.close()
 
 
+def pair_once(state, code, name, *, identity_profile="apk"):
+    """Run one pairing attempt; True once trust is saved. Errors are printed without the code."""
+    try:
+        asyncio.run(pair(state, code, name, identity_profile=identity_profile))
+        return True
+    except (ControlError, PairingError, IdentityError) as error:
+        progress("pair_failed")
+        print(str(error), file=sys.stderr, flush=True)
+    except (TimeoutError, OSError, ValueError, KeyError):
+        progress("pair_failed")
+        print("Pairing failed; no new peer trust saved", file=sys.stderr, flush=True)
+    return False
+
+
+ATTEMPT = "pairing_attempt"
+
+
+def _fingerprint(salt, code):
+    return hashlib.sha256(salt + code.encode("ascii")).hexdigest()
+
+
+def _already_tried(record, code):
+    try:
+        salt, digest = record.read_text().split()
+        return _fingerprint(bytes.fromhex(salt), code) == digest
+    except (OSError, ValueError):
+        return False
+
+
+def pair_with_code(state, code, name):
+    """Pair without a terminal (add-on option, code file); True once trust is saved.
+
+    A configured code stays in place across restarts, so a salted fingerprint of
+    each attempted code is kept and the same code is never tried twice.
+    """
+    try:
+        code = normalize_code(code)
+        if code_mode(code) == "local":
+            raise PairingError("Local pairing code detected; cloud pairing was not attempted")
+        state = private_directory(state)
+    except (PairingError, IdentityError) as error:
+        print(str(error), file=sys.stderr, flush=True)
+        return False
+    record = state / ATTEMPT
+    if _already_tried(record, code):
+        print(
+            "This pairing code was already tried; generate a new one on the CC panel",
+            file=sys.stderr,
+            flush=True,
+        )
+        return False
+    salt = os.urandom(16)
+    with tempfile.NamedTemporaryFile(mode="w", dir=state, delete=False) as f:
+        os.fchmod(f.fileno(), 0o600)
+        f.write(salt.hex() + " " + _fingerprint(salt, code) + "\n")
+    os.replace(f.name, record)
+    print("Pairing with the configured code", flush=True)
+    if not pair_once(state, code, name):
+        return False
+    record.unlink(missing_ok=True)
+    return True
+
+
+def read_code_file(path):
+    """Read a code from a small regular file such as a Docker secret."""
+    try:
+        with open(path, "rb") as file:
+            info = os.fstat(file.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_size > 256:
+                raise PairingError("Pairing code file must be a small regular file")
+            data = file.read(257)
+    except OSError:
+        raise PairingError("Pairing code file is unreadable") from None
+    try:
+        return normalize_code(data.decode("ascii"))
+    except UnicodeDecodeError:
+        raise PairingError("Invalid pairing code format") from None
+
+
+def pair_from_file(state, path, name="Danfoss MQTT", *, interval=30, sleep=time.sleep):
+    """Pair from a code file, waiting for a new code after a failed attempt."""
+    seen = None
+    while not (Path(state) / "paired_cc.json").exists():
+        try:
+            current = read_code_file(path)
+        except PairingError as error:
+            current = str(error)
+            if current != seen:
+                print(current, file=sys.stderr, flush=True)
+        else:
+            if current != seen:
+                if pair_with_code(state, current, name):
+                    return
+                print("Waiting for a new code in the pairing code file", flush=True)
+        seen = current
+        sleep(interval)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Pair own CC using hidden terminal input"
@@ -169,24 +273,8 @@ def main():
             else "Cloud pairing code detected"
         )
         return 0
-    try:
-        asyncio.run(
-            pair(
-                args.state,
-                code,
-                args.name,
-                identity_profile="apk" if args.apk_identity_test else "legacy",
-            )
-        )
-        return 0
-    except (ControlError, PairingError, IdentityError) as error:
-        progress("pair_failed")
-        print(str(error), file=sys.stderr)
-        return 1
-    except (TimeoutError, OSError, ValueError, KeyError):
-        progress("pair_failed")
-        print("Pairing failed; no new peer trust saved", file=sys.stderr)
-        return 1
+    profile = "apk" if args.apk_identity_test else "legacy"
+    return 0 if pair_once(args.state, code, args.name, identity_profile=profile) else 1
 
 
 if __name__ == "__main__":

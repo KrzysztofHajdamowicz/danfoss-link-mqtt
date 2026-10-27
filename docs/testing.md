@@ -7,7 +7,7 @@ uv sync --locked
 PYTHONPATH=src:tests uv run python -m unittest test_mqtt_bridge test_mqtt_status test_mqtt_wire \
   test_temperature_control test_readonly_transport test_pace_crypto test_identity_profile \
   test_code_diagnostics test_rooms test_hub_transport test_hub_model test_hub_client \
-  test_hub_bridge test_hub_wire test_addon_run test_sbom_openssl
+  test_hub_bridge test_hub_wire test_addon_run test_pairing_code test_sbom_openssl
 ```
 
 The private runtime has a separate TLS regression suite that generates its own synthetic certificates. Tests are not part of the image; mount them into the exact image under test:
@@ -18,7 +18,7 @@ docker run --rm --network none --read-only \
   --tmpfs /tmp:rw,nosuid,size=32m,mode=1777 \
   -v "$PWD/tests:/app/tests:ro" -e PYTHONPATH=/app:/app/tests \
   danfoss-link-mqtt:test python -m unittest test_native_tls test_pace_crypto test_mqtt_status \
-  test_hub_transport test_hub_client test_hub_bridge test_addon_run
+  test_hub_transport test_hub_client test_hub_bridge test_addon_run test_pairing_code
 ```
 
 Native TLS tests exercise explicit BrainpoolP320r1, ordinary named curves, peer pinning, issuer handling, corrupted signatures, expiration and encrypted memory-BIO traffic. They require the patched runtime; do not expect them to pass against unmodified system OpenSSL. On Alpine (musl), `ctypes.util.find_library` cannot locate libraries, so the PACE and certificate helpers fall back to loading `libcrypto.so.3` by name, which resolves to the private runtime through `LD_LIBRARY_PATH`.

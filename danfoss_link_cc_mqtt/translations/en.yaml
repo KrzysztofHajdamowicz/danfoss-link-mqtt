@@ -28,6 +28,11 @@ configuration:
   suggest_areas:
     name: Suggest areas
     description: Suggest a Home Assistant area named after each CC room when its device is first added.
+  pairing_code:
+    name: Pairing code
+    description: >-
+      Fresh cloud code from the CC panel, used once when the add-on is not paired yet.
+      Remove it after pairing.
   timezone:
     name: CC time zone
     description: IANA zone of the CC clock for holiday times; defaults to the Home Assistant time zone.

@@ -80,7 +80,7 @@ jobs:
               --tmpfs /tmp:rw,nosuid,size=32m,mode=1777 \
               -v "$PWD/tests:/app/tests:ro" -e PYTHONPATH=/app:/app/tests "$image" \
               python -m unittest test_native_tls test_pace_crypto test_mqtt_status \
-              test_hub_transport test_hub_client test_hub_bridge test_addon_run
+              test_hub_transport test_hub_client test_hub_bridge test_addon_run test_pairing_code
             echo "- \`$image\`: $(docker image inspect --format '{{.Size}}' "$image" | numfmt --to=si)B" >> "$GITHUB_STEP_SUMMARY"
           done
       - name: CycloneDX 1.6 SBOM of the standalone image

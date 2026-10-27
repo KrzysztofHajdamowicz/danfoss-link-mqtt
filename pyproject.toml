@@ -1,6 +1,6 @@
 [project]
 name = "danfoss-link-mqtt"
-version = "0.1.0"
+version = "0.2.0"
 description = "Danfoss Link CC to Home Assistant over MQTT, through the Danfoss cloud relay"
 readme = "README.md"
 license = "MIT"

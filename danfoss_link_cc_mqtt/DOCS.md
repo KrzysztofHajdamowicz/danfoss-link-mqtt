@@ -37,14 +37,20 @@ Use **one** of these:
   The add-on imports them with private permissions within a few seconds. Delete the copies from the
   configuration folder afterwards, and stop the old container: two bridges must not share an identity.
 - **Pair fresh**: on the CC panel, open the remote/app connection menu and generate a cloud code
-  (codes starting with `0000` are local codes and are refused). From the Home Assistant host shell:
+  (codes starting with `0000` are local codes and are refused). Enter it as **Pairing code** in the
+  add-on configuration (shown under *Show unused optional configuration options*), save and restart
+  the add-on. It pairs as "Home Assistant" and then starts the bridge.
+
+  Each code is tried once and never written to the log. If pairing fails, generate a new code,
+  replace the option and restart. Once paired, the option is ignored; remove it, because Home
+  Assistant keeps options, including this one, in the add-on's data and its backups.
+
+  Alternatively, pair at a hidden prompt from the Home Assistant host shell:
 
   ```sh
   docker exec -it $(docker ps -qf name=danfoss_link_cc_mqtt) \
     python /app/pair_cc.py --state /data --apk-identity-test --name "Home Assistant"
   ```
-
-  Type the code at the hidden prompt. Never put the code in options, arguments or logs.
 
 Pairing state lives in the add-on's `/data`, so Home Assistant backups of the add-on contain the
 paired private key. Protect backups accordingly.
@@ -61,6 +67,7 @@ paired private key. Protect backups accordingly.
 | `allow_writes` | true | Off: read-only entities, no commands |
 | `suggest_areas` | true | Suggest an area per CC room when its device is first added |
 | `timezone` | Home Assistant's | IANA zone of the CC clock, for holiday times |
+| `pairing_code` | empty | Fresh cloud code from the CC panel, used once while unpaired (see above) |
 
 ## Devices and entities
 

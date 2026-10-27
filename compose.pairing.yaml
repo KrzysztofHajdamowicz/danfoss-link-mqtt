@@ -1,0 +1,14 @@
+# Optional overlay: pair at startup from a code file instead of the hidden prompt.
+#   docker compose -f compose.yaml -f compose.pairing.yaml up -d
+# Put a fresh cloud code from the CC panel into pairing-code.txt (readable by UID 65534)
+# and delete the file once the log says the bridge is paired.
+services:
+  mqtt:
+    environment:
+      DANFOSS_PAIRING_CODE_FILE: /run/secrets/danfoss_pairing_code
+    secrets:
+      - danfoss_pairing_code
+
+secrets:
+  danfoss_pairing_code:
+    file: ./pairing-code.txt
