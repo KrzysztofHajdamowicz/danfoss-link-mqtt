@@ -40,7 +40,27 @@ The `JsonWebResponse` envelope contains the matching `id` and `data.data.status`
 | `/api/system/status` | GET | Static request; status observed inside world |
 | `/api/onoffdevices` | GET | Static request; empty list observed inside world |
 
-Other app paths include modes, temperature settings, notifications and system software updates. The published write transport does not allow those writes. No schedules, firmware, alarm acknowledgement, zone or regulation writes are implemented.
+The hub bridge (`src/hub_transport.py`) sends only requests that match an explicit allowlist of methods, URIs and exact `content` shapes; anything else is rejected before it leaves the process. Writes carry `Accept` and `Content-Type: application/json; charset=utf-8` headers.
+
+| Operation | Method and URI | Content | Evidence |
+| --- | --- | --- | --- |
+| Room target temperature | `PATCH /api/rooms/<id>` | `{"id":<id>,"setpoint":{"temperature":T}}` | Live write and readback verified |
+| Room at-home / away setpoint | `PATCH /api/rooms/<id>` | `{"id":<id>,"regulation":{"atHomeSetpoint":T}}` or `awaySetpoint` | Live status 200 |
+| Pause on/off | `PUT /api/modes/pause` | `{"type":"Pause","state":"Active"\|"Inactive"}` | Live, both directions |
+| Holiday on/off | `PUT /api/modes/vacation` | `{"type":"Vacation","state":…}`, plus `startTime`/`endTime` (CC-local `YYYY-MM-DDTHH:MM:SS`) when activating | Live for `Inactive`; activation synthetic only |
+| At home on/off | `PUT /api/modes/athome` | `{"type":"AtHome","state":…}` | Live for `Inactive`; activation synthetic only |
+| Pause / holiday temperature | `PATCH /api/settings/temperature` | `{"pauseTemperature":{"setpoint":T}}` or `vacationTemperature` | Live status 200 |
+| On/off device | `PATCH /api/onoffdevices/<id>` | `{"id":<id>,"state":"On"\|"Off"}` | Synthetic only; tested CC has none |
+
+`GET /api/world` returns everything the bridge publishes in one response, including `modes` (`AtHome`, `Vacation`, `Pause`, each with `state`; the active one with `startTime`/`endTime`), `temperatureSettings` (pause and vacation setpoint with min/max) and `systemInfo`.
+
+Observed CC behavior that shapes the client:
+
+- **Pause and Vacation block setpoint writes.** The CC answers 400 *"Setpoint can only be changed while room is not in paused or vacation mode."* and holds rooms at the pause/vacation temperature. The client refuses such writes from a fresh read before sending. A CC left in Pause looks like lost control.
+- **Regulation type is zone-governed.** `PATCH /api/rooms/<id>` with `{"regulation":{"type":…}}` for a room in a zone returns 400 *"Can't change regulation type of rooms that are part of the Living Zone."* It is therefore not on the allowlist; heat/auto is read-only.
+- Rejections carry `content.errorMessages`; the bridge publishes them (printable, at most four, 200 characters each) in the **Last command** entity.
+
+No schedule, firmware, alarm acknowledgement, zone or regulation-type writes are implemented.
 
 `allRooms` includes `id`, `name`, `ambientTemperature`, `minSetpoint`, `maxSetpoint`, `regulation`, `regulationState`, `setpoint`, `state`, `zone`, `mode`, and `hasTemperatureSensor` in the inspected live response. `777` is an app sentinel for unavailable temperatures and is not published as a temperature.
 

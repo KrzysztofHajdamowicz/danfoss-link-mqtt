@@ -2,21 +2,28 @@ name: Tests
 on:
   push:
   pull_request:
+  workflow_call:
 permissions:
   contents: read
 jobs:
   python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          # Keep in step with the uv image in the Dockerfile.
+          version: "0.13.1"
           python-version: "3.12"
-      - run: python -m pip install -r requirements-dev.txt
-      - name: Protocol, MQTT and synthetic broker tests
+      - run: uv sync --locked
+      - name: Protocol, hub, add-on and synthetic MQTT broker tests
         env:
           PYTHONPATH: src:tests
         run: >-
-          python -m unittest test_mqtt_bridge test_mqtt_status test_mqtt_wire
-          test_temperature_control test_readonly_transport test_pace_crypto
-          test_identity_profile test_code_diagnostics test_rooms
+          uv run --locked python -m unittest test_mqtt_bridge test_mqtt_status
+          test_mqtt_wire test_temperature_control test_readonly_transport
+          test_pace_crypto test_identity_profile test_code_diagnostics test_rooms
+          test_hub_transport test_hub_model test_hub_client test_hub_bridge
+          test_hub_wire test_addon_run test_sbom_openssl

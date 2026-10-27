@@ -1,0 +1,33 @@
+---
+configuration:
+  mqtt_host:
+    name: MQTT host
+    description: Leave empty to use the Mosquitto broker add-on automatically.
+  mqtt_port:
+    name: MQTT port
+    description: Defaults to 1883, or 8883 with TLS.
+  mqtt_username:
+    name: MQTT username
+  mqtt_password:
+    name: MQTT password
+  mqtt_tls:
+    name: MQTT TLS
+    description: Certificate-validated TLS using the system CA store.
+  topic_prefix:
+    name: Topic prefix
+    description: Prefix for state and command topics (default danfoss_link).
+  discovery_prefix:
+    name: Discovery prefix
+    description: Home Assistant MQTT discovery prefix (default homeassistant).
+  poll_interval:
+    name: Poll interval
+    description: Seconds between cloud reads of the CC (30-3600).
+  allow_writes:
+    name: Allow writes
+    description: When off, all entities are read-only and no commands are accepted.
+  suggest_areas:
+    name: Suggest areas
+    description: Suggest a Home Assistant area named after each CC room when its device is first added.
+  timezone:
+    name: CC time zone
+    description: IANA zone of the CC clock for holiday times; defaults to the Home Assistant time zone.

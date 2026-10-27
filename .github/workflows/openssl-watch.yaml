@@ -1,0 +1,37 @@
+name: OpenSSL release watch
+# OpenSSL is built from a pinned source archive with a patch, out of Dependabot's reach.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compare the pinned OpenSSL with the newest 3.5.x release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          pinned=$(sed -n 's/^VERSION = "\(.*\)"$/\1/p' tools/fetch_openssl.py)
+          latest=$(gh api 'repos/openssl/openssl/releases?per_page=50' \
+            --jq '[.[] | select(.prerelease | not) | .tag_name | select(startswith("openssl-3.5."))][0]' \
+            | sed 's/^openssl-//')
+          echo "Pinned $pinned, newest 3.5.x $latest"
+          [ -n "$latest" ] && [ "$latest" != "$pinned" ] || exit 0
+          title="OpenSSL $latest is available (pinned: $pinned)"
+          body="Update VERSION/SHA256 in tools/fetch_openssl.py, rebase patches/openssl-$pinned-bp320.patch and run the native TLS tests."
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .has_issues)" = true ]; then
+            if [ -z "$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[].number')" ]; then
+              gh issue create --title "$title" --body "$body"
+            fi
+          else
+            echo "::error::$title. $body"
+            exit 1
+          fi

@@ -1,21 +1,30 @@
 # Testing and verification limits
 
-The quick Python suite uses synthetic requests/responses, temporary credentials/certificates and a temporary localhost MQTT broker. Its Danfoss transport is mocked, so no household state is changed by those tests.
+The Python suite uses synthetic requests/responses, temporary credentials/certificates and a temporary localhost MQTT broker. Its Danfoss transport is mocked — the hub tests use an in-memory CC (`tests/hub_fixtures.py`) that enforces the same request allowlist and the Pause/Holiday setpoint rule — so no household state is changed by those tests.
 
-The private runtime has a separate TLS regression suite that generates its own synthetic certificates. Run after building the image:
+```sh
+uv sync --locked
+PYTHONPATH=src:tests uv run python -m unittest test_mqtt_bridge test_mqtt_status test_mqtt_wire \
+  test_temperature_control test_readonly_transport test_pace_crypto test_identity_profile \
+  test_code_diagnostics test_rooms test_hub_transport test_hub_model test_hub_client \
+  test_hub_bridge test_hub_wire test_addon_run test_sbom_openssl
+```
+
+The private runtime has a separate TLS regression suite that generates its own synthetic certificates. Tests are not part of the image; mount them into the exact image under test:
 
 ```sh
 docker build -t danfoss-link-mqtt:test .
 docker run --rm --network none --read-only \
   --tmpfs /tmp:rw,nosuid,size=32m,mode=1777 \
-  -e PYTHONPATH=/app:/app/tests \
-  danfoss-link-mqtt:test python -m unittest test_native_tls test_pace_crypto test_mqtt_status
+  -v "$PWD/tests:/app/tests:ro" -e PYTHONPATH=/app:/app/tests \
+  danfoss-link-mqtt:test python -m unittest test_native_tls test_pace_crypto test_mqtt_status \
+  test_hub_transport test_hub_client test_hub_bridge test_addon_run
 ```
 
-Native TLS tests exercise explicit BrainpoolP320r1, ordinary named curves, peer pinning, issuer handling, corrupted signatures, expiration and encrypted memory-BIO traffic. They require the patched runtime; do not expect them to pass against unmodified system OpenSSL. The image workflow runs on pushes to main or manual dispatch. It runs the Python suite first, builds the image, runs native tests inside that exact image, and publishes only if all steps pass. The ordinary push/PR workflow runs the Python suite and synthetic MQTT broker test.
+Native TLS tests exercise explicit BrainpoolP320r1, ordinary named curves, peer pinning, issuer handling, corrupted signatures, expiration and encrypted memory-BIO traffic. They require the patched runtime; do not expect them to pass against unmodified system OpenSSL. On Alpine (musl), `ctypes.util.find_library` cannot locate libraries, so the PACE and certificate helpers fall back to loading `libcrypto.so.3` by name, which resolves to the private runtime through `LD_LIBRARY_PATH`.
 
-Initial public-source preparation ran 42 Python tests successfully. The readable patch applied cleanly, with no fuzz, to the previously retained OpenSSL 3.5.9 source files. This workspace has no Docker engine, so the newly reorganized Dockerfile has not been built here. The same compatibility patch/runtime was previously built and exercised on the original test host; the new file layout needs a fresh build confirmation.
+The amqtt test broker does not preserve one client's QoS 1 publish order when forwarding and its shutdown can hang; the hub wire test therefore subscribes with QoS 0, checks the shutdown state at the bridge's client and bounds the broker shutdown. Production brokers such as Mosquitto keep order.
 
-Installation verification should begin with reads: confirm room names, measured temperatures, setpoints and system status. Only then test a temperature change in a room chosen by its owner and verify it on the CC/app. A failed/uncertain write must not be blindly retried.
+Installation verification should begin with reads: confirm room names, measured temperatures, setpoints and system status. Only then test a change in a room chosen by its owner and verify it on the CC. A failed/uncertain write must not be blindly retried.
 
-Live evidence so far comes from one installation: successful pairing, reconnect with the saved certificate, reads of nine rooms and a temperature write with readback; the owner also confirmed HA → CC and CC → HA. Automatic heating-action/system/alarm publication has synthetic coverage but still needs owner confirmation on the updated installation. Actual active low-battery alarms and multi-thermostat alarm identification remain unverified.
+Live evidence comes from two installations. The original one: pairing, reconnect with the saved certificate, reads of nine rooms and a temperature write with readback, HA → CC and CC → HA. A second one (6 rooms, firmware 4.2.1724): pairing, `/api/world` reads, at-home/away setpoints, pause/holiday temperatures, and leaving Holiday and At home; with the hub bridge on the Alpine image, a room setpoint +0.5 °C and back and Pause on and off (rooms drop to the pause temperature, a setpoint command during Pause is refused locally), both over MQTT and through Home Assistant 2026.10 services, about 5–7 s per verified write. In the same Home Assistant, the flat bridge's entities migrated to the hub and room devices with unchanged entity IDs and no discovery warnings, and the entities recovered after a Home Assistant restart. Activating Holiday or At home, on/off devices, actual low-battery alarms and multi-thermostat alarm identification remain unverified on a real CC.

@@ -1,6 +1,6 @@
 # Prebuilt image; no local compilation or source checkout required.
 x-image: &image
-  image: ${DANFOSS_IMAGE:-ghcr.io/leifnel/danfoss-link-mqtt:latest}
+  image: ${DANFOSS_IMAGE:-ghcr.io/krzysztofhajdamowicz/danfoss-link-mqtt:latest}
 
 services:
   mqtt:
@@ -27,6 +27,8 @@ services:
       MQTT_DISCOVERY_PREFIX: ${MQTT_DISCOVERY_PREFIX:-homeassistant}
       DANFOSS_POLL_INTERVAL: ${DANFOSS_POLL_INTERVAL:-60}
       DANFOSS_ALLOW_WRITES: ${DANFOSS_ALLOW_WRITES:-true}
+      DANFOSS_TIMEZONE: ${DANFOSS_TIMEZONE:-}
+      DANFOSS_SUGGEST_AREAS: ${DANFOSS_SUGGEST_AREAS:-true}
     volumes:
       - pairing-state:/state
 
