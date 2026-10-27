@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0
+
+### Dependencies
+* Bump astral-sh/uv from 0.13.1 to 0.13.6 by @dependabot[bot] in https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt/pull/2
+* Bump amqtt from 0.11.3 to 0.12.1 by @dependabot[bot] in https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt/pull/3
+### Changes
+* Hub and room devices, Home Assistant add-on, supply-chain-checked Alpine image by @KrzysztofHajdamowicz in https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt/pull/1
+* CI: run the push-triggered Tests workflow on main only by @KrzysztofHajdamowicz in https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt/pull/4
+* Pair from the add-on configuration or a code file by @KrzysztofHajdamowicz in https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt/pull/5
+* Release from a version tag by @KrzysztofHajdamowicz in https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt/pull/6
+
+### New Contributors
+* @KrzysztofHajdamowicz made their first contribution in https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt/pull/1
+* @dependabot[bot] made their first contribution in https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt/pull/2
+
+**Full Changelog**: https://github.com/KrzysztofHajdamowicz/danfoss-link-mqtt/commits/v0.3.0
+
 ## 0.2.0
 
 - Pair from the add-on configuration: enter a fresh cloud code from the CC panel as the
