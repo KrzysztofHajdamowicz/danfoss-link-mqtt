@@ -24,7 +24,7 @@ RUN set -eux; \
     rmdir lib/ossl-modules 2>/dev/null || true; \
     strip --strip-unneeded lib/libssl.so.3 lib/libcrypto.so.3 bin/openssl
 
-FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 AS uv
 
 # Locked runtime dependencies (uv.lock hashes) in a virtual environment.
 FROM python:3.12-alpine3.24@sha256:b658b05ce9c4eb97ec6fc19424818a1f31993659c2b505a532f470e83807815d AS deps
