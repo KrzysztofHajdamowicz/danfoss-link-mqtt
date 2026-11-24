@@ -5,7 +5,7 @@ description = "Danfoss Link CC to Home Assistant over MQTT, through the Danfoss 
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
-dependencies = ["paho-mqtt==2.1.0"]
+dependencies = ["paho-mqtt==2.2.0"]
 
 [dependency-groups]
 dev = ["amqtt==0.12.2"]
