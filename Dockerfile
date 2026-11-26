@@ -1,4 +1,4 @@
-FROM python:3.12-alpine3.24@sha256:b658b05ce9c4eb97ec6fc19424818a1f31993659c2b505a532f470e83807815d AS openssl-build
+FROM python:3.12-alpine3.24@sha256:c5ba3deef00c7758561a0f03c26f44f10589263d40e732b8748e0d1f38f6dd89 AS openssl-build
 RUN apk add --no-cache build-base linux-headers patch perl
 WORKDIR /build
 COPY tools/fetch_openssl.py /build/fetch_openssl.py
@@ -27,14 +27,14 @@ RUN set -eux; \
 FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 AS uv
 
 # Locked runtime dependencies (uv.lock hashes) in a virtual environment.
-FROM python:3.12-alpine3.24@sha256:b658b05ce9c4eb97ec6fc19424818a1f31993659c2b505a532f470e83807815d AS deps
+FROM python:3.12-alpine3.24@sha256:c5ba3deef00c7758561a0f03c26f44f10589263d40e732b8748e0d1f38f6dd89 AS deps
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy
 WORKDIR /build
 COPY pyproject.toml uv.lock /build/
 RUN uv sync --locked --no-dev --no-install-project --no-cache
 
-FROM python:3.12-alpine3.24@sha256:b658b05ce9c4eb97ec6fc19424818a1f31993659c2b505a532f470e83807815d AS runtime
+FROM python:3.12-alpine3.24@sha256:c5ba3deef00c7758561a0f03c26f44f10589263d40e732b8748e0d1f38f6dd89 AS runtime
 RUN apk add --no-cache tzdata
 COPY --from=deps /opt/venv /opt/venv
 COPY --from=openssl-build /opt/mdg-openssl /opt/mdg-openssl
